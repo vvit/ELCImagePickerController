@@ -85,11 +85,27 @@
         
         [self.elcAssets removeAllObjects];
         [self.assetGroup enumerateAssetsUsingBlock:^(ALAsset *result, NSUInteger index, BOOL *stop) {
-            
+
+            //result is nil if it's the last pass: http://stackoverflow.com/questions/23378377/alassetlibrary-notification-and-enumerateassetsusingblock
             if (result == nil) {
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    [self.tableView reloadData];
+                    // scroll to bottom
+                    long section = [self numberOfSectionsInTableView:self.tableView] - 1;
+                    long row = [self tableView:self.tableView numberOfRowsInSection:section] - 1;
+                    if (section >= 0 && row >= 0) {
+                        NSIndexPath *ip = [NSIndexPath indexPathForRow:row
+                                                             inSection:section];
+                        [self.tableView scrollToRowAtIndexPath:ip
+                                              atScrollPosition:UITableViewScrollPositionBottom
+                                                      animated:NO];
+                    }
+
+                    [self.navigationItem setTitle:self.singleSelection ? NSLocalizedString(@"Pick Photo", nil) : NSLocalizedString(@"Pick Photos", nil)];
+                });
                 return;
             }
-            
+
             ELCAsset *elcAsset = [[ELCAsset alloc] initWithAsset:result];
             [elcAsset setParent:self];
             
@@ -103,24 +119,7 @@
             if (!isAssetFiltered) {
                 [self.elcAssets addObject:elcAsset];
             }
-
          }];
-
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            [self.tableView reloadData];
-            // scroll to bottom
-            long section = [self numberOfSectionsInTableView:self.tableView] - 1;
-            long row = [self tableView:self.tableView numberOfRowsInSection:section] - 1;
-            if (section >= 0 && row >= 0) {
-                NSIndexPath *ip = [NSIndexPath indexPathForRow:row
-                                                     inSection:section];
-                        [self.tableView scrollToRowAtIndexPath:ip
-                                              atScrollPosition:UITableViewScrollPositionBottom
-                                                      animated:NO];
-            }
-            
-            [self.navigationItem setTitle:self.singleSelection ? NSLocalizedString(@"Pick Photo", nil) : NSLocalizedString(@"Pick Photos", nil)];
-        });
     }
 }
 
